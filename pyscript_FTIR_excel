@@ -1,0 +1,27 @@
+# This short pyscript combine multiple table data to one master table if the first column ("Wavenumbers", x-axes) matches.
+
+# libraries
+import pandas as pd
+import os
+
+# list of files to combine
+data_files = os.listdir("RAW_DATA")
+data_files
+
+# first table to set x axis data (Wavenumbers)
+ftir_df = pd.read_csv(f"RAW_DATA/{data_files[0]}", delimiter=" ", header=None, names=["Wavenumbers", "{}".format(data_files[0])])
+ftir_df
+
+# for loop to combine all data that has matching x-axis
+for file in data_files:
+    tab = pd.read_csv(f"RAW_DATA/{file}", delimiter=" ", header=None)
+    if list (ftir_df["Wavenumbers"]) == list(tab[0]):
+        ftir_df["{}".format(file)] = tab [1]
+    else:
+        print (f""">> {file} ERROR << 
+A difference in x axis was detected. File has not been added to the table.""")
+
+ftir_df
+
+# excel export
+ftir_df.to_excel("combined_spectra.xlsx")
