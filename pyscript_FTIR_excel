@@ -1,27 +1,57 @@
-# This short pyscript combine multiple table data to one master table if the first column ("Wavenumbers", x-axes) matches.
+"""
+This short python script combine multiple table data to one master table if the first column ("Wavenumbers", x-axes) matches.
+The script also reports tables that did not match the x-axis and reports summary table with description.
+Output: .xlsx table with multiple sheets
+"""
 
 # libraries
 import pandas as pd
 import os
 
-# list of files to combine
+#formating tool
+print_format = ">>>-------------------------------------------<<<"
+
+# list of files to combine in "RAW_DATA" folder file
 data_files = os.listdir("RAW_DATA")
-data_files
 
-# first table to set x axis data (Wavenumbers)
-ftir_df = pd.read_csv(f"RAW_DATA/{data_files[0]}", delimiter=" ", header=None, names=["Wavenumbers", "{}".format(data_files[0])])
-ftir_df
+#tables
+desc_df = pd.DataFrame(columns=["Name", "Description"]) #empty dataframe for collecting descriptions
+error_df = pd.DataFrame(columns=["Name"]) #empty dataframe for collecting errors
+ftir_df = pd.read_csv(f"RAW_DATA/{data_files[0]}", delimiter=" ", header=None, names=["Wavenumbers", f"{data_files[0]}"]) #dataframe with x-axis ("Wavenumbers")
 
-# for loop to combine all data that has matching x-axis
+# for loop to combine all data to master table that has matching x-axis ("Wavenumbers")
 for file in data_files:
     tab = pd.read_csv(f"RAW_DATA/{file}", delimiter=" ", header=None)
     if list (ftir_df["Wavenumbers"]) == list(tab[0]):
         ftir_df["{}".format(file)] = tab [1]
+        desc_input = input(f"{file} has been added. Please fill in the sample description or press Q to skip.")
+        if desc_input == "q" or "Q":
+            desc_df.loc[len(desc_df.index)] = [f"{file}", "N/A"]
+        else:
+            desc_df.loc[len(desc_df.index)] = [f"{file}", desc_input]
     else:
         print (f""">> {file} ERROR << 
-A difference in x axis was detected. File has not been added to the table.""")
+A difference in x axis was detected. File has not been added to the table.
+""")
+        error_df.loc[len(error_df.index)] = [f"{file}"]
 
-ftir_df
+print ("Error table".upper(), print_format, "\n")
+print (error_df)
+print ("\nDescription table".upper(), print_format, "\n")
+print (desc_df)
+print ("\nMaster data table".upper(), print_format, "\n")
+print (ftir_df)
+print ("\nEND".upper(), print_format, "\n")
+
 
 # excel export
-ftir_df.to_excel("combined_spectra.xlsx")
+writer = pd.ExcelWriter('combined_ftirspectra.xlsx', engine='xlsxwriter')
+
+desc_df.to_excel(writer, sheet_name='Summary')
+ftir_df.to_excel(writer, sheet_name='Data')
+error_df.to_excel(writer, sheet_name='Errors')
+
+writer.save()
+
+exit()
+
